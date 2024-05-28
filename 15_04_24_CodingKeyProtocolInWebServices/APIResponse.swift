@@ -6,6 +6,13 @@
 //
 
 import Foundation
+struct User : Decodable{
+    var id : Int
+    var email : String
+    var firstName : String
+    var lastName : String
+    var avatar : String
+}
 struct APIResponse : Decodable{
     //This class must contain all keys (other than nesting related keys)
     var page : Int
@@ -13,11 +20,7 @@ struct APIResponse : Decodable{
     var total : Int
     var totalPages : Int
     
-    var id : Int
-    var email : String
-    var firstName : String
-    var lastName : String
-    var avatar : String
+    var data : [User]
     
     var url : String
     var text : String
@@ -32,7 +35,7 @@ struct APIResponse : Decodable{
         case support
     }
     
-    enum DataKeys : String,CodingKey{
+    enum DataKeys : String,CodingKey,Decodable{
         case id
         case email
         case firstName = "first_name"
@@ -52,12 +55,24 @@ struct APIResponse : Decodable{
         total = try! mainContainer.decode(Int.self, forKey: .total)
         totalPages = try! mainContainer.decode(Int.self, forKey: .totalPages)
         
-        let dataContainer = try! mainContainer.nestedContainer(keyedBy: [DataKeys].self, forKey: .data)
-        id = try! dataContainer.decode(Int.self, forKey: .id)
-        email = try! dataContainer.decode(String.self, forKey: .email)
-        firstName = try! dataContainer.decode(String.self, forKey: .firstName)
-        lastName = try! dataContainer.decode(String.self, forKey: .lastName)
-        avatar = try! dataContainer.decode(String.self, forKey: .avatar)
+        var usersContainer = try! mainContainer.nestedUnkeyedContainer(forKey: .data)
+        var usersArray : [User] = []
+        for i in 0...usersContainer.count!{
+            let userContainer = try! usersContainer.nestedContainer(keyedBy: DataKeys.self)
+            let userId = try! userContainer.decode(Int.self, forKey: .id)
+            let userEmail = try! userContainer.decode(String.self, forKey: .email)
+            let userFirstName = try! userContainer.decode(String.self, forKey: .firstName)
+            let userLastName = try! userContainer.decode(String.self, forKey: .lastName)
+            let userAvatar = try! userContainer.decode(String.self, forKey: .avatar)
+            usersArray.append(
+                User(id: userId,
+                     email: userEmail,
+                     firstName: userFirstName,
+                     lastName: userLastName,
+                     avatar: userAvatar)
+            )
+        }
+        self.data = usersArray
         
         let supportContainer = try! mainContainer.nestedContainer(keyedBy: SupportKeys.self, forKey: .support)
         url = try! supportContainer.decode(String.self, forKey: .url)
